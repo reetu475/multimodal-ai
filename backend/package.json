@@ -4,7 +4,7 @@
   "description": "Backend API for Multimodal Document Analysis System",
   "private": true,
   "scripts": {
-    "build": "nest build",
+    "build": "node -e \"process.argv.splice(1, 0, 'nest'); require('@nestjs/cli/bin/nest')\" build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
