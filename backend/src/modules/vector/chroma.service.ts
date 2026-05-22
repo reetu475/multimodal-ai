@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChromaClient, Collection } from 'chromadb';
+import { ChromaClient, CloudClient, Collection } from 'chromadb';
 
 @Injectable()
 export class ChromaService implements OnModuleInit {
@@ -28,19 +28,16 @@ export class ChromaService implements OnModuleInit {
     this.logger.log(`Connecting to ChromaDB Cloud at ${chromaUrl} (Tenant: ${tenant}, DB: ${database})...`);
 
     try {
-      // Connect to ChromaDB Cloud using auth credentials
-      const clientConfig: any = { path: chromaUrl };
-
-      if (apiKey && apiKey !== 'your_chroma_cloud_api_key_here') {
-        clientConfig.tenant = tenant;
-        clientConfig.database = database;
-        clientConfig.auth = {
-          provider: 'token',
-          credentials: apiKey,
-        };
+      if (!apiKey || apiKey === 'your_chroma_cloud_api_key_here') {
+        throw new Error('CHROMA_CLOUD_API_KEY is not configured.');
       }
 
-      this.client = new ChromaClient(clientConfig);
+      this.client = new CloudClient({
+        apiKey,
+        tenant,
+        database,
+        cloudHost: chromaUrl.replace(/:8000\/?$/, '').replace(/\/$/, ''),
+      });
       
       // Heartbeat check to confirm connectivity
       const version = await this.client.version();
