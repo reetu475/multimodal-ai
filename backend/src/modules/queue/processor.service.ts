@@ -32,6 +32,7 @@ export class QueueProcessor {
       await this.documentService.updateDocument(documentId, {
         status: 'PROCESSING',
         progress: 15,
+        errorMessage: undefined,
       });
 
       let extractedText = '';
@@ -151,6 +152,7 @@ ${extractedText.substring(0, 15000)}
       await this.documentService.updateDocument(documentId, {
         status: 'COMPLETED',
         progress: 100,
+        errorMessage: undefined,
         summary: result.summary,
         sentiment: result.sentiment,
         entities: result.entities,
@@ -164,6 +166,7 @@ ${extractedText.substring(0, 15000)}
       await this.documentService.updateDocument(documentId, {
         status: 'FAILED',
         progress: 100,
+        errorMessage: error.message,
       });
     }
   }

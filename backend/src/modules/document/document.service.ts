@@ -15,6 +15,7 @@ export interface DocumentRecord {
   filePath: string;
   createdAt: Date;
   summary?: string;
+  errorMessage?: string;
   entities?: Array<{ name: string; type: string }>;
   sentiment?: string;
   visualizations?: Array<{
@@ -66,6 +67,7 @@ export class DocumentService {
       progress: 0,
       filePath: localFilePath,
       createdAt: new Date(),
+      errorMessage: undefined,
     };
 
     this.dbStore.set(documentId, record);

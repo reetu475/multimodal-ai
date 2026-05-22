@@ -49,6 +49,7 @@ export class DocumentController {
       sentiment: doc.sentiment || 'NEUTRAL',
       visualizations: doc.visualizations || [],
       status: doc.status,
+      errorMessage: doc.errorMessage,
     };
   }
 

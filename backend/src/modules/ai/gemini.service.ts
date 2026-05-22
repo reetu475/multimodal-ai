@@ -9,6 +9,7 @@ export class GeminiService implements OnModuleInit {
   private readonly logger = new Logger(GeminiService.name);
   private ai: GoogleGenAI;
   private apiKey: string;
+  private allowOfflineFallback = process.env.ALLOW_OFFLINE_FALLBACK === 'true';
 
   constructor(private configService: ConfigService) {}
 
@@ -66,6 +67,11 @@ Based on the indexed document segments, the content describes critical technical
 
       return JSON.parse(text) as T;
     } catch (error) {
+      if (!this.allowOfflineFallback) {
+        this.logger.error(`Error in generateStructured: ${error.message}`);
+        throw error;
+      }
+
       this.logger.error(`Error in generateStructured: ${error.message}. Using offline mock insights synthesis...`);
       
       // Generate highly realistic mock document analysis structured insights!
