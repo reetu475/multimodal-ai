@@ -24,7 +24,7 @@ export class GeminiService implements OnModuleInit {
   /**
    * Generates raw text response for a given prompt (with fallback)
    */
-  async generateText(prompt: string, model = 'gemini-2.5-flash'): Promise<string> {
+  async generateText(prompt: string, model = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash'): Promise<string> {
     try {
       if (!this.apiKey || this.apiKey === 'your_gemini_api_key_here') {
         throw new Error('GEMINI_API_KEY is not configured.');
@@ -45,7 +45,7 @@ Based on the indexed document segments, the content describes critical technical
   /**
    * Generates structured JSON output based on a prompt and validation schema (with fallback)
    */
-  async generateStructured<T>(prompt: string, schema: any, model = 'gemini-2.5-flash'): Promise<T> {
+  async generateStructured<T>(prompt: string, schema: any, model = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash'): Promise<T> {
     try {
       if (!this.apiKey || this.apiKey === 'your_gemini_api_key_here') {
         throw new Error('GEMINI_API_KEY is not configured.');
@@ -119,7 +119,7 @@ Based on the indexed document segments, the content describes critical technical
         throw new Error('GEMINI_API_KEY is not configured.');
       }
       const response = await this.ai.models.embedContent({
-        model: 'gemini-embedding-2',
+        model: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
         contents: text,
       });
 
@@ -167,7 +167,7 @@ Based on the indexed document segments, the content describes critical technical
     filePath: string,
     mimeType: string,
     prompt: string,
-    model = 'gemini-2.5-flash',
+    model = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash',
   ): Promise<string> {
     let uploadedFileRef: any = null;
     try {

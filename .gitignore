@@ -1,0 +1,15 @@
+node_modules/
+dist/
+backend/dist/
+frontend/dist/
+
+.env
+backend/.env
+frontend/.env
+
+uploads/
+backend/uploads/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
