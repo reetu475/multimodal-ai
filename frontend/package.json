@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node -e \"require('typescript/lib/tsc')\" && node -e \"const path=require('path'); const { pathToFileURL }=require('url'); process.argv.splice(1,0,'vite'); import(pathToFileURL(path.join(path.dirname(require.resolve('vite/package.json')),'bin/vite.js')).href)\" build",
     "preview": "vite preview"
   },
   "dependencies": {
