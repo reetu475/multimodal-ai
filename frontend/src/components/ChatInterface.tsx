@@ -49,9 +49,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ activeDocumentId }
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error(error);
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : 'An unexpected error occurred.';
       const errorMessage: Message = {
         role: 'assistant',
-        content: "I'm sorry, I encountered an error while trying to connect to the vector store database. Please check your service connections.",
+        content: `I'm sorry, I couldn't complete that request. ${message}`,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {

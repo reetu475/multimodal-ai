@@ -163,7 +163,16 @@ ANSWER:`;
 
       // 4. Generate reasoning response using Gemini
       this.logger.log(`Generating final answer using Gemini...`);
-      const answer = await this.geminiService.generateText(systemPrompt);
+      let answer: string;
+      try {
+        answer = await this.geminiService.generateText(systemPrompt);
+      } catch (error) {
+        this.logger.warn(`Gemini answer generation failed: ${error.message}. Returning retrieved context instead.`);
+        answer = `I found relevant document sections, but the AI answer generator is temporarily unavailable. Here are the most relevant excerpts:\n\n${contextMatches
+          .slice(0, 3)
+          .map((match, i) => `${i + 1}. ${match.content.substring(0, 500)}`)
+          .join('\n\n')}`;
+      }
 
       return {
         answer,
