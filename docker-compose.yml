@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  backend:
+    build: .
+    container_name: multimodal_backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+
   redis:
     image: redis:alpine
     container_name: multimodal_redis
@@ -12,3 +28,4 @@ services:
 
 volumes:
   redis_data:
+  uploads:
