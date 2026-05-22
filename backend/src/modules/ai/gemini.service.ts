@@ -36,6 +36,11 @@ export class GeminiService implements OnModuleInit {
       });
       return response.text;
     } catch (error) {
+      if (!this.allowOfflineFallback) {
+        this.logger.error(`Error in generateText: ${error.message}`);
+        throw error;
+      }
+
       this.logger.error(`Error in generateText: ${error.message}. Using offline fallback answer...`);
       return `[OFFLINE FALLBACK] This is an offline mock response from the RAG agent. The Gemini API key is either missing, unauthorized, or quota-limited. 
 
@@ -65,7 +70,7 @@ Based on the indexed document segments, the content describes critical technical
         throw new Error('Received empty response from Gemini API');
       }
 
-      return JSON.parse(text) as T;
+      return this.parseJsonResponse<T>(text);
     } catch (error) {
       if (!this.allowOfflineFallback) {
         this.logger.error(`Error in generateStructured: ${error.message}`);
@@ -114,6 +119,15 @@ Based on the indexed document segments, the content describes critical technical
       
       return mockResult as T;
     }
+  }
+
+  private parseJsonResponse<T>(text: string): T {
+    const cleaned = text
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '');
+
+    return JSON.parse(cleaned) as T;
   }
 
   /**
