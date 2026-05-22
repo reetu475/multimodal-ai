@@ -71,6 +71,42 @@ export class ChromaService implements OnModuleInit {
     return denom === 0 ? 0 : dotProduct / denom;
   }
 
+  private addChunksToFallbackStore(documentId: string, chunks: string[], embeddings: number[][], metadatas: any[]) {
+    for (let i = 0; i < chunks.length; i++) {
+      this.fallbackStore.push({
+        id: `${documentId}_chunk_${i}`,
+        documentId,
+        embedding: embeddings[i],
+        metadata: metadatas[i],
+        document: chunks[i],
+      });
+    }
+    this.logger.log(`Successfully added ${chunks.length} chunks to local store fallback.`);
+  }
+
+  private queryFallbackStore(queryEmbedding: number[], nResults = 5, documentIds?: string[]): any[] {
+    let candidates = this.fallbackStore;
+
+    if (documentIds && documentIds.length > 0) {
+      candidates = candidates.filter((item) => documentIds.includes(item.documentId));
+    }
+
+    const scored = candidates.map((item) => {
+      const similarity = this.cosineSimilarity(queryEmbedding, item.embedding);
+      return {
+        content: item.document,
+        metadata: item.metadata,
+        distance: 1 - similarity,
+      };
+    });
+
+    scored.sort((a, b) => a.distance - b.distance);
+
+    const results = scored.slice(0, nResults);
+    this.logger.log(`Local semantic search completed. Found ${results.length} matches.`);
+    return results;
+  }
+
   /**
    * Gets or creates a vector collection in ChromaDB
    */
@@ -109,16 +145,7 @@ export class ChromaService implements OnModuleInit {
 
     if (!this.client) {
       this.logger.warn('ChromaDB client offline. Storing chunks in local in-memory fallback store.');
-      for (let i = 0; i < chunks.length; i++) {
-        this.fallbackStore.push({
-          id: `${documentId}_chunk_${i}`,
-          documentId,
-          embedding: embeddings[i],
-          metadata: sanitizedMetadatas[i],
-          document: chunks[i],
-        });
-      }
-      this.logger.log(`Successfully added ${chunks.length} chunks to local store fallback.`);
+      this.addChunksToFallbackStore(documentId, chunks, embeddings, sanitizedMetadatas);
       return true;
     }
 
@@ -138,8 +165,10 @@ export class ChromaService implements OnModuleInit {
 
       return true;
     } catch (error) {
-      this.logger.error(`Failed to add chunks to ChromaDB: ${error.message}`);
-      throw error;
+      this.logger.error(`Failed to add chunks to ChromaDB: ${error.message}. Using local fallback store.`);
+      this.addChunksToFallbackStore(documentId, chunks, embeddings, sanitizedMetadatas);
+      this.client = null;
+      return true;
     }
   }
 
@@ -153,28 +182,7 @@ export class ChromaService implements OnModuleInit {
   ): Promise<any[]> {
     if (!this.client) {
       this.logger.warn('ChromaDB client offline. Running semantic search over local in-memory store...');
-      let candidates = this.fallbackStore;
-
-      // Filter by document IDs if specified
-      if (documentIds && documentIds.length > 0) {
-        candidates = candidates.filter((item) => documentIds.includes(item.documentId));
-      }
-
-      const scored = candidates.map((item) => {
-        const similarity = this.cosineSimilarity(queryEmbedding, item.embedding);
-        return {
-          content: item.document,
-          metadata: item.metadata,
-          distance: 1 - similarity, // Cosine distance
-        };
-      });
-
-      // Sort by cosine distance ascending (closest first)
-      scored.sort((a, b) => a.distance - b.distance);
-
-      const results = scored.slice(0, nResults);
-      this.logger.log(`Local semantic search completed. Found ${results.length} matches.`);
-      return results;
+      return this.queryFallbackStore(queryEmbedding, nResults, documentIds);
     }
 
     try {
@@ -216,8 +224,9 @@ export class ChromaService implements OnModuleInit {
 
       return results;
     } catch (error) {
-      this.logger.error(`Failed to query ChromaDB: ${error.message}`);
-      throw error;
+      this.logger.error(`Failed to query ChromaDB: ${error.message}. Using local fallback store.`);
+      this.client = null;
+      return this.queryFallbackStore(queryEmbedding, nResults, documentIds);
     }
   }
 
