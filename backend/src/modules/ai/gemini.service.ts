@@ -3,6 +3,29 @@ import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
+import { traceable } from 'langsmith/traceable';
+
+// Define traceable wrappers for Google GenAI calls to connect with LangSmith
+const tracedGenerateContent = traceable(
+  async (ai: GoogleGenAI, model: string, contents: any, config?: any) => {
+    return await ai.models.generateContent({
+      model,
+      contents,
+      config,
+    });
+  },
+  { name: 'Gemini Generate Content', run_type: 'llm' }
+);
+
+const tracedEmbedContent = traceable(
+  async (ai: GoogleGenAI, model: string, contents: any) => {
+    return await ai.models.embedContent({
+      model,
+      contents,
+    });
+  },
+  { name: 'Gemini Embed Content', run_type: 'embedding' }
+);
 
 @Injectable()
 export class GeminiService implements OnModuleInit {
@@ -30,10 +53,7 @@ export class GeminiService implements OnModuleInit {
       if (!this.apiKey || this.apiKey === 'your_gemini_api_key_here') {
         throw new Error('GEMINI_API_KEY is not configured.');
       }
-      const response = await this.ai.models.generateContent({
-        model,
-        contents: prompt,
-      });
+      const response = await tracedGenerateContent(this.ai, model, prompt);
       return response.text;
     } catch (error) {
       if (!this.allowOfflineFallback) {
@@ -56,13 +76,9 @@ Based on the indexed document segments, the content describes critical technical
       if (!this.apiKey || this.apiKey === 'your_gemini_api_key_here') {
         throw new Error('GEMINI_API_KEY is not configured.');
       }
-      const response = await this.ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: schema,
-        },
+      const response = await tracedGenerateContent(this.ai, model, prompt, {
+        responseMimeType: 'application/json',
+        responseSchema: schema,
       });
 
       const text = response.text;
@@ -138,10 +154,11 @@ Based on the indexed document segments, the content describes critical technical
       if (!this.apiKey || this.apiKey === 'your_gemini_api_key_here') {
         throw new Error('GEMINI_API_KEY is not configured.');
       }
-      const response = await this.ai.models.embedContent({
-        model: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
-        contents: text,
-      });
+      const response = await tracedEmbedContent(
+        this.ai,
+        process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
+        text,
+      );
 
       const embedding = response.embeddings && response.embeddings[0];
       if (!embedding || !embedding.values) {
@@ -222,10 +239,7 @@ Based on the indexed document segments, the content describes critical technical
 
       this.logger.log(`File state is ACTIVE. Sending analysis request...`);
 
-      const response = await this.ai.models.generateContent({
-        model,
-        contents: [uploadedFileRef, prompt],
-      });
+      const response = await tracedGenerateContent(this.ai, model, [uploadedFileRef, prompt]);
 
       return response.text;
     } catch (error) {
